@@ -500,7 +500,7 @@ CURRENCIES = {
 currency_code = st.selectbox("Currency", list(CURRENCIES.keys()), index=list(CURRENCIES.keys()).index("AED"))
 currency_symbol = CURRENCIES[currency_code]
 
-    start_date = st.text_input("Start date (YYYY-MM-01)", value="2027-08-01")
+    start_date = st.text_input("Start_date (YYYY-MM-01)", value="2027-08-01")
     horizon_years = st.slider("Horizon (years)", 5, 40, 25)
 
     salary_monthly = st.number_input("Salary (monthly)", min_value=0.0, value=70000.0, step=1000.0)
