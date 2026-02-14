@@ -303,7 +303,7 @@ def make_chart_png(df: pd.DataFrame, x_col: str, y_cols: List[str], title: str) 
     ax.plot(df[x_col], df[y_cols])
     ax.set_title(title)
     ax.set_xlabel(x_col)
-    ax.set_ylabel("AED / Units")
+    ax.set_ylabel(f"{currency_code} / Units")
     ax.legend(y_cols)
     buf = BytesIO()
     fig.tight_layout()
@@ -348,7 +348,7 @@ def build_pdf_report(
     styles = getSampleStyleSheet()
     story = []
 
-    story.append(Paragraph("UAE / GCC Real‑Estate Portfolio Builder – Report", styles["Title"]))
+    story.append(Paragraph("Global Real‑Estate Portfolio Builder – Report", styles["Title"]))
     story.append(Spacer(1, 0.3 * cm))
     story.append(Paragraph("Educational / planning use only. Not financial advice.", styles["Italic"]))
     story.append(Spacer(1, 0.4 * cm))
@@ -374,7 +374,7 @@ def build_pdf_report(
     last_bal = bal.iloc[-1].to_dict()
     story.append(Paragraph("Key Results (End of Horizon)", styles["Heading2"]))
     kpi_data = [
-        ["Units", "Cash (AED)", "Assets (AED)", "Debt (AED)", "Net Worth (AED)"],
+        ["Units", f"Cash ({currency_code})", f"Assets ({currency_code})", f"Debt ({currency_code})", f"Net Worth ({currency_code})"],
         [
             f'{int(last_bal["Units_End"])}',
             f'{last_bal["Cash"]:,.0f}',
@@ -446,7 +446,7 @@ HOW_TO_USE_EN = """
    - **Hybrid (auto)**: starts personal, then switches to company mode when personal limits are reached.
 
 3. **Adjust bank rules**
-   - **Base cap (AED)**: your maximum mortgage payments allowed.
+   - **Base cap (Currency)**: your maximum mortgage payments allowed.
    - **Rent credit %**: portion of active rent counted toward your cap and income.
    - **DBR limit** (personal) and **DSCR min** (company).
 
@@ -470,12 +470,36 @@ HOW_TO_USE_EN = """
 # -----------------------------
 # Streamlit UI
 # -----------------------------
-st.set_page_config(page_title="UAE Portfolio Builder", layout="wide")
-st.title("UAE / GCC Real‑Estate Portfolio Builder")
+st.set_page_config(page_title="Property Wealth Builder", layout="wide")
+st.title("Global Real‑Estate Portfolio Builder")
 st.caption("Clean dashboard + yearly summaries. (Planning/education only — not financial advice.)")
 
 with st.sidebar:
     st.header("1) Simulation")
+# Currency (display only)
+CURRENCIES = {
+    "USD": "$",
+    "EUR": "€",
+    "GBP": "£",
+    "AED": "AED",
+    "SAR": "SAR",
+    "QAR": "QAR",
+    "KWD": "KD",
+    "BHD": "BD",
+    "OMR": "OMR",
+    "INR": "₹",
+    "PKR": "PKR",
+    "EGP": "EGP",
+    "TRY": "₺",
+    "SGD": "S$",
+    "HKD": "HK$",
+    "AUD": "A$",
+    "CAD": "C$",
+    "JPY": "¥",
+}
+currency_code = st.selectbox("Currency", list(CURRENCIES.keys()), index=list(CURRENCIES.keys()).index("AED"))
+currency_symbol = CURRENCIES[currency_code]
+
     start_date = st.text_input("Start date (YYYY-MM-01)", value="2027-08-01")
     horizon_years = st.slider("Horizon (years)", 5, 40, 25)
 
@@ -488,7 +512,7 @@ with st.sidebar:
     st.header("2) Financing")
     strategy = st.selectbox("Strategy", ["Personal only", "Company only", "Hybrid (auto)"], index=2)
 
-    max_monthly_commitment = st.number_input("Base cap (AED)", min_value=0.0, value=25000.0, step=500.0,
+    max_monthly_commitment = st.number_input(f"Base cap ({currency_code})", min_value=0.0, value=25000.0, step=500.0,
                                              help="Your max total mortgage payments allowed (before rent credit).")
     rent_credit_pct = st.slider("Rent credit %", 0, 100, 70, help="Portion of ACTIVE rent counted toward cap and income.") / 100.0
 
@@ -503,15 +527,15 @@ with st.sidebar:
 
     st.divider()
     st.header("3) Property")
-    purchase_price = st.number_input("Purchase price (AED)", min_value=0.0, value=1300000.0, step=10000.0)
+    purchase_price = st.number_input("Purchase price (Currency)", min_value=0.0, value=1300000.0, step=10000.0)
     down_payment_pct = st.slider("Down payment %", 5, 50, 20) / 100.0
     mortgage_years = st.slider("Mortgage term (years)", 5, 30, 20)
     annual_interest_rate = st.number_input("Interest rate (APR as decimal)", min_value=0.0, value=0.045, step=0.001)
 
-    annual_rent = st.number_input("Annual rent (AED)", min_value=0.0, value=85000.0, step=1000.0)
+    annual_rent = st.number_input("Annual rent (Currency)", min_value=0.0, value=85000.0, step=1000.0)
     vacancy_pct = st.slider("Vacancy %", 0, 30, 5) / 100.0
-    annual_service_charge = st.number_input("Annual service charge (AED)", min_value=0.0, value=12000.0, step=500.0)
-    annual_maintenance = st.number_input("Annual maintenance (AED)", min_value=0.0, value=6000.0, step=500.0)
+    annual_service_charge = st.number_input("Annual service charge (Currency)", min_value=0.0, value=12000.0, step=500.0)
+    annual_maintenance = st.number_input("Annual maintenance (Currency)", min_value=0.0, value=6000.0, step=500.0)
     upfront_fees_pct = st.slider("Upfront fees % (DLD+broker+misc)", 0, 10, 4) / 100.0
 
     delivery = st.radio("Delivery", ["Ready", "Off‑plan"], index=0)
@@ -602,9 +626,9 @@ if run:
     with tabs[0]:
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Units (end)", int(last["Units_End"]))
-        c2.metric("Cash (end)", f'{last["Cash"]:,.0f} AED')
-        c3.metric("Debt (end)", f'{last["Debt"]:,.0f} AED')
-        c4.metric("Net worth (end)", f'{last["NetWorth"]:,.0f} AED')
+        c2.metric("Cash (end)", f'{last["Cash"]:,.0f} {currency_code}')
+        c3.metric("Debt (end)", f'{last["Debt"]:,.0f} {currency_code}')
+        c4.metric("Net worth (end)", f'{last["NetWorth"]:,.0f} {currency_code}')
 
         st.subheader("Yearly Performance (P&L)")
         st.dataframe(perf.style.format({
